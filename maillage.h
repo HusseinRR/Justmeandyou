@@ -21,6 +21,7 @@ public:
 
 class Maillage {
 public:
+    Maillage() { /* Optionally initialize members here */ }
     std::vector<Point> points;      // List of nodes
     std::vector<Triangle> triangles; // List of triangles
     int nx, ny;                     // Number of subdivisions in x and y

@@ -1,3 +1,6 @@
+#ifndef ASSEMBLE_HPP
+#define ASSEMBLE_HPP
+
 #include "Matrice.hpp" // Contient les fonctions aireTriangle, gradientLocal, calculer_A_V et assemblerMatrice
 #include "Maillage.h"    // Définit les structures Point, Triangle et la classe Maillage
 #include "vecteur.hpp"   // Autres définitions utiles
@@ -79,3 +82,4 @@ void assemblerMatrice(const Maillage &maillage, Matrice<double> &M, Matrice<doub
         }
     }
 }
+#endif // ASSEMBLE_HPP

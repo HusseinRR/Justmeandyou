@@ -8,10 +8,27 @@
 #include "vecteur.hpp"
 #include "assemble.hpp"
 #include <iomanip>
+#include "test.hpp"
 
 
 
 int main() {
+    std::cout << "Démarrage des tests..." << std::endl;
+    
+    // Test de la matrice de rigidité pour un élément unique
+    testStiffnessWithOnes();
+    
+    // Test de l'intégration d'une fonction constante
+    testMassMatrixIntegration();
+    
+    // Test de la symétrie des matrices
+    testSimpleLU();
+    
+    // Test du solveur LU
+    testAffineStiffness(); 
+    
+    std::cout << "Tous les tests sont passés avec succès." << std::endl;
+
     // 1) Définition des paramètres de l'EDP/options
     double Xi[2][2] = { {0.04, -0.024},
                         {-0.024, 0.04} };
