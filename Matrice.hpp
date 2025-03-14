@@ -6,224 +6,401 @@
 #include <cmath>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
+// ============================================================================
+// Classe de matrice dense
+// ============================================================================
 template<typename T>
 class Matrice {
 public:
-    int m, n;           // number of rows and columns
-    std::vector<T> data; // storage in row–major order
+    int lignes, colonnes;         // nombre de lignes et de colonnes
+    std::vector<T> donnees;       // stockage en ordre ligne-major
+
 public:
     Matrice();
-    Matrice(int m, int n);
-    void resize(int m, int n);
-    int rows() const;
-    int cols() const;
+    Matrice(int lignes, int colonnes);
+    void redimensionner(int lignes, int colonnes);
+    int nbLignes() const;
+    int nbColonnes() const;
     T& operator()(int i, int j);
     const T& operator()(int i, int j) const;
 
-    // Basic arithmetic operations
-    Matrice<T> operator+(const Matrice<T>& other) const;
-    Matrice<T>& operator+=(const Matrice<T>& other);
-    Matrice<T> operator-(const Matrice<T>& other) const;
-    Matrice<T>& operator-=(const Matrice<T>& other);
-    Matrice<T> operator*(const T& scalar) const;
-    Matrice<T>& operator*=(const T& scalar);
-    Matrice<T> operator/(const T& scalar) const;
-    Matrice<T>& operator/=(const T& scalar);
+    // Opérations arithmétiques de base
+    Matrice<T> operator+(const Matrice<T>& autre) const;
+    Matrice<T>& operator+=(const Matrice<T>& autre);
+    Matrice<T> operator-(const Matrice<T>& autre) const;
+    Matrice<T>& operator-=(const Matrice<T>& autre);
+    Matrice<T> operator*(const T& scalaire) const;
+    Matrice<T>& operator*=(const T& scalaire);
+    Matrice<T> operator/(const T& scalaire) const;
+    Matrice<T>& operator/=(const T& scalaire);
 
-    // Matrix multiplication
-    Matrice<T> operator*(const Matrice<T>& other) const;
-    // Matrix-vector multiplication (with std::vector)
-    std::vector<T> operator*(const std::vector<T>& vec) const;
+    // Multiplication de matrices et multiplication matrice-vecteur
+    Matrice<T> operator*(const Matrice<T>& autre) const;
+    std::vector<T> operator*(const std::vector<T>& vect) const;
 
-    // LU factorization (in-place, no pivoting)
-    void factorLU();
-    // Solve LU * x = b; b is overwritten by the solution x.
-    void solveLU(std::vector<T>& b) const;
+    // Factorisation LU (in-situ, sans pivotage)
+    void factoriserLU();
+    // Résolution de LU * x = b ; b est remplacé par la solution x.
+    void resoudreLU(std::vector<T>& b) const;
 
-    // For debugging: return a string representation
-    std::string str() const;
+    // Pour débogage : retourne une représentation sous forme de chaîne
+    std::string toString() const;
 };
 
 template<typename T>
-Matrice<T>::Matrice() : m(0), n(0) {}
+Matrice<T>::Matrice() : lignes(0), colonnes(0) {}
 
 template<typename T>
-Matrice<T>::Matrice(int m_, int n_) : m(m_), n(n_), data(m_*n_, T(0)) {}
+Matrice<T>::Matrice(int lignes_, int colonnes_) : lignes(lignes_), colonnes(colonnes_), donnees(lignes_ * colonnes_, T(0)) {}
 
 template<typename T>
-void Matrice<T>::resize(int m_, int n_) {
-    m = m_;
-    n = n_;
-    data.assign(m * n, T(0));
+void Matrice<T>::redimensionner(int lignes_, int colonnes_) {
+    lignes = lignes_;
+    colonnes = colonnes_;
+    donnees.assign(lignes * colonnes, T(0));
 }
 
 template<typename T>
-int Matrice<T>::rows() const { return m; }
+int Matrice<T>::nbLignes() const { return lignes; }
 
 template<typename T>
-int Matrice<T>::cols() const { return n; }
+int Matrice<T>::nbColonnes() const { return colonnes; }
 
 template<typename T>
 T& Matrice<T>::operator()(int i, int j) {
-    if (i < 0 || i >= m || j < 0 || j >= n)
-        throw std::out_of_range("Index out of range in Matrice");
-    return data[i * n + j];
+    return donnees[i * colonnes + j];
 }
 
 template<typename T>
 const T& Matrice<T>::operator()(int i, int j) const {
-    if (i < 0 || i >= m || j < 0 || j >= n)
-        throw std::out_of_range("Index out of range in Matrice");
-    return data[i * n + j];
+    return donnees[i * colonnes + j];
 }
 
 template<typename T>
-Matrice<T> Matrice<T>::operator+(const Matrice<T>& other) const {
-    if (m != other.m || n != other.n)
-        throw std::invalid_argument("Matrix dimensions must match for addition.");
-    Matrice<T> result(m, n);
-    for (int i = 0; i < m * n; ++i)
-        result.data[i] = data[i] + other.data[i];
-    return result;
+Matrice<T> Matrice<T>::operator+(const Matrice<T>& autre) const {
+    Matrice<T> resultat(lignes, colonnes);
+    for (int i = 0; i < lignes * colonnes; ++i)
+        resultat.donnees[i] = donnees[i] + autre.donnees[i];
+    return resultat;
 }
 
 template<typename T>
-Matrice<T>& Matrice<T>::operator+=(const Matrice<T>& other) {
-    if (m != other.m || n != other.n)
-        throw std::invalid_argument("Matrix dimensions must match for addition.");
-    for (int i = 0; i < m * n; ++i)
-        data[i] += other.data[i];
+Matrice<T>& Matrice<T>::operator+=(const Matrice<T>& autre) {
+    for (int i = 0; i < lignes * colonnes; ++i)
+        donnees[i] += autre.donnees[i];
     return *this;
 }
 
 template<typename T>
-Matrice<T> Matrice<T>::operator-(const Matrice<T>& other) const {
-    if (m != other.m || n != other.n)
-        throw std::invalid_argument("Matrix dimensions must match for subtraction.");
-    Matrice<T> result(m, n);
-    for (int i = 0; i < m * n; ++i)
-        result.data[i] = data[i] - other.data[i];
-    return result;
+Matrice<T> Matrice<T>::operator-(const Matrice<T>& autre) const {
+    Matrice<T> resultat(lignes, colonnes);
+    for (int i = 0; i < lignes * colonnes; ++i)
+        resultat.donnees[i] = donnees[i] - autre.donnees[i];
+    return resultat;
 }
 
 template<typename T>
-Matrice<T>& Matrice<T>::operator-=(const Matrice<T>& other) {
-    if (m != other.m || n != other.n)
-        throw std::invalid_argument("Matrix dimensions must match for subtraction.");
-    for (int i = 0; i < m * n; ++i)
-        data[i] -= other.data[i];
+Matrice<T>& Matrice<T>::operator-=(const Matrice<T>& autre) {
+    for (int i = 0; i < lignes * colonnes; ++i)
+        donnees[i] -= autre.donnees[i];
     return *this;
 }
 
 template<typename T>
-Matrice<T> Matrice<T>::operator*(const T& scalar) const {
-    Matrice<T> result(m, n);
-    for (int i = 0; i < m * n; ++i)
-        result.data[i] = data[i] * scalar;
-    return result;
+Matrice<T> Matrice<T>::operator*(const T& scalaire) const {
+    Matrice<T> resultat(lignes, colonnes);
+    for (int i = 0; i < lignes * colonnes; ++i)
+        resultat.donnees[i] = donnees[i] * scalaire;
+    return resultat;
 }
 
 template<typename T>
-Matrice<T>& Matrice<T>::operator*=(const T& scalar) {
-    for (int i = 0; i < m * n; ++i)
-        data[i] *= scalar;
+Matrice<T>& Matrice<T>::operator*=(const T& scalaire) {
+    for (int i = 0; i < lignes * colonnes; ++i)
+        donnees[i] *= scalaire;
     return *this;
 }
 
 template<typename T>
-Matrice<T> Matrice<T>::operator/(const T& scalar) const {
-    Matrice<T> result(m, n);
-    for (int i = 0; i < m * n; ++i)
-        result.data[i] = data[i] / scalar;
-    return result;
+Matrice<T> Matrice<T>::operator/(const T& scalaire) const {
+    Matrice<T> resultat(lignes, colonnes);
+    for (int i = 0; i < lignes * colonnes; ++i)
+        resultat.donnees[i] = donnees[i] / scalaire;
+    return resultat;
 }
 
 template<typename T>
-Matrice<T>& Matrice<T>::operator/=(const T& scalar) {
-    for (int i = 0; i < m * n; ++i)
-        data[i] /= scalar;
+Matrice<T>& Matrice<T>::operator/=(const T& scalaire) {
+    for (int i = 0; i < lignes * colonnes; ++i)
+        donnees[i] /= scalaire;
     return *this;
 }
 
 template<typename T>
-Matrice<T> Matrice<T>::operator*(const Matrice<T>& other) const {
-    if (n != other.m)
-        throw std::invalid_argument("Matrix multiplication dimension mismatch.");
-    Matrice<T> result(m, other.n);
-    for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < other.n; ++j) {
-            T sum = T(0);
-            for (int k = 0; k < n; ++k)
-                sum += (*this)(i, k) * other(k, j);
-            result(i, j) = sum;
+Matrice<T> Matrice<T>::operator*(const Matrice<T>& autre) const {
+    Matrice<T> resultat(lignes, autre.colonnes);
+    for (int i = 0; i < lignes; ++i) {
+        for (int j = 0; j < autre.colonnes; ++j) {
+            T somme = T(0);
+            for (int k = 0; k < colonnes; ++k)
+                somme += (*this)(i, k) * autre(k, j);
+            resultat(i, j) = somme;
         }
     }
-    return result;
+    return resultat;
 }
 
 template<typename T>
-std::vector<T> Matrice<T>::operator*(const std::vector<T>& vec) const {
-    if (vec.size() != static_cast<size_t>(n))
-        throw std::invalid_argument("Matrix-vector multiplication dimension mismatch.");
-    std::vector<T> result(m, T(0));
-    for (int i = 0; i < m; ++i) {
-        T sum = T(0);
-        for (int j = 0; j < n; ++j)
-            sum += (*this)(i, j) * vec[j];
-        result[i] = sum;
+std::vector<T> Matrice<T>::operator*(const std::vector<T>& vect) const {
+    std::vector<T> resultat(lignes, T(0));
+    for (int i = 0; i < lignes; ++i) {
+        T somme = T(0);
+        for (int j = 0; j < colonnes; ++j)
+            somme += (*this)(i, j) * vect[j];
+        resultat[i] = somme;
     }
-    return result;
+    return resultat;
 }
 
 template<typename T>
-void Matrice<T>::factorLU() {
-    if (m != n)
-        throw std::invalid_argument("LU factorization requires a square matrix.");
-    for (int k = 0; k < m; ++k) {
-        if (std::fabs((*this)(k, k)) < 1e-12)
-            throw std::runtime_error("Zero pivot encountered in LU factorization.");
-        for (int i = k + 1; i < m; ++i) {
+void Matrice<T>::factoriserLU() {
+    for (int k = 0; k < lignes; ++k) {
+        for (int i = k + 1; i < lignes; ++i) {
             (*this)(i, k) /= (*this)(k, k);
-            for (int j = k + 1; j < m; ++j)
+            for (int j = k + 1; j < lignes; ++j)
                 (*this)(i, j) -= (*this)(i, k) * (*this)(k, j);
         }
     }
 }
 
 template<typename T>
-void Matrice<T>::solveLU(std::vector<T>& b) const {
-    if (m != n || b.size() != static_cast<size_t>(m))
-        throw std::invalid_argument("LU solver requires square matrix and matching vector size.");
-    std::vector<T> x(b); // copy b into x
-    // Forward substitution for L (L has unit diagonal)
-    for (int i = 1; i < m; ++i) {
-        T sum = x[i];
+void Matrice<T>::resoudreLU(std::vector<T>& b) const {
+    std::vector<T> x(b); // copie de b dans x
+    // Substitution avant pour L (diagonale unitaire)
+    for (int i = 1; i < lignes; ++i) {
+        T somme = x[i];
         for (int j = 0; j < i; ++j)
-            sum -= (*this)(i, j) * x[j];
-        x[i] = sum; // no division since L(i,i)=1
+            somme -= (*this)(i, j) * x[j];
+        x[i] = somme;
     }
-    // Back substitution for U
-    for (int i = m - 1; i >= 0; --i) {
-        T sum = x[i];
-        for (int j = i + 1; j < m; ++j)
-            sum -= (*this)(i, j) * x[j];
+    // Substitution arrière pour U
+    for (int i = lignes - 1; i >= 0; --i) {
+        T somme = x[i];
+        for (int j = i + 1; j < lignes; ++j)
+            somme -= (*this)(i, j) * x[j];
         if (std::fabs((*this)(i, i)) < 1e-12)
-            throw std::runtime_error("Zero pivot encountered in back substitution.");
-        x[i] = sum / (*this)(i, i);
+            throw std::runtime_error("Pivot nul rencontré lors de la substitution arrière.");
+        x[i] = somme / (*this)(i, i);
     }
     b = x;
 }
 
 template<typename T>
-std::string Matrice<T>::str() const {
+std::string Matrice<T>::toString() const {
     std::ostringstream oss;
-    for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < n; ++j)
+    for (int i = 0; i < lignes; ++i) {
+        for (int j = 0; j < colonnes; ++j)
             oss << (*this)(i, j) << " ";
         oss << "\n";
     }
     return oss.str();
+}
+
+// ============================================================================
+// Classe pour matrice symétrique (stockage de la partie triangulaire inférieure)
+// ============================================================================
+template<typename T>
+class MatriceSymetrique {
+public:
+    int taille;                    // dimension de la matrice carrée
+    std::vector<T> donnees;        // stockage de la partie triangulaire inférieure
+
+public:
+    MatriceSymetrique();
+    MatriceSymetrique(int taille);
+    void redimensionner(int taille);
+    T& operator()(int i, int j);
+    const T& operator()(int i, int j) const;
+
+    // Opérations basiques
+    MatriceSymetrique<T> operator+(const MatriceSymetrique<T>& autre) const;
+    MatriceSymetrique<T>& operator+=(const MatriceSymetrique<T>& autre);
+    MatriceSymetrique<T> operator*(const T& scalaire) const;
+    MatriceSymetrique<T>& operator*=(const T& scalaire);
+
+    // Conversion en matrice dense
+    Matrice<T> toDense() const;
+
+    // Factorisation de Cholesky (pour matrices symétriques définies positives)
+    void factoriserCholesky();
+    // Résolution de L*L^T * x = b, b est remplacé par la solution x.
+    void resoudreCholesky(std::vector<T>& b) const;
+};
+
+template<typename T>
+MatriceSymetrique<T>::MatriceSymetrique() : taille(0) {}
+
+template<typename T>
+MatriceSymetrique<T>::MatriceSymetrique(int taille_) : taille(taille_), donnees(taille_ * (taille_ + 1) / 2, T(0)) {}
+
+template<typename T>
+void MatriceSymetrique<T>::redimensionner(int taille_) {
+    taille = taille_;
+    donnees.assign(taille * (taille + 1) / 2, T(0));
+}
+
+template<typename T>
+T& MatriceSymetrique<T>::operator()(int i, int j) {
+    if (i < j) std::swap(i, j);
+    return donnees[i * (i + 1) / 2 + j];
+}
+
+template<typename T>
+const T& MatriceSymetrique<T>::operator()(int i, int j) const {
+    if (i < j) std::swap(i, j);
+    return donnees[i * (i + 1) / 2 + j];
+}
+
+template<typename T>
+MatriceSymetrique<T> MatriceSymetrique<T>::operator+(const MatriceSymetrique<T>& autre) const {
+    MatriceSymetrique<T> resultat(taille);
+    int nb = taille * (taille + 1) / 2;
+    for (int i = 0; i < nb; ++i)
+        resultat.donnees[i] = donnees[i] + autre.donnees[i];
+    return resultat;
+}
+
+template<typename T>
+MatriceSymetrique<T>& MatriceSymetrique<T>::operator+=(const MatriceSymetrique<T>& autre) {
+    int nb = taille * (taille + 1) / 2;
+    for (int i = 0; i < nb; ++i)
+        donnees[i] += autre.donnees[i];
+    return *this;
+}
+
+template<typename T>
+MatriceSymetrique<T> MatriceSymetrique<T>::operator*(const T& scalaire) const {
+    MatriceSymetrique<T> resultat(taille);
+    int nb = taille * (taille + 1) / 2;
+    for (int i = 0; i < nb; ++i)
+        resultat.donnees[i] = donnees[i] * scalaire;
+    return resultat;
+}
+
+template<typename T>
+MatriceSymetrique<T>& MatriceSymetrique<T>::operator*=(const T& scalaire) {
+    int nb = taille * (taille + 1) / 2;
+    for (int i = 0; i < nb; ++i)
+        donnees[i] *= scalaire;
+    return *this;
+}
+
+template<typename T>
+Matrice<T> MatriceSymetrique<T>::toDense() const {
+    Matrice<T> dense(taille, taille);
+    for (int i = 0; i < taille; ++i)
+        for (int j = 0; j < taille; ++j)
+            dense(i, j) = (i >= j ? donnees[i*(i+1)/2 + j] : donnees[j*(j+1)/2 + i]);
+    return dense;
+}
+
+template<typename T>
+void MatriceSymetrique<T>::factoriserCholesky() {
+    for (int i = 0; i < taille; ++i) {
+        T somme = (*this)(i, i);
+        for (int k = 0; k < i; ++k)
+            somme -= (*this)(i, k) * (*this)(i, k);
+        if (somme <= 0)
+            throw std::runtime_error("Matrice non définie positive pour la factorisation de Cholesky.");
+        (*this)(i, i) = std::sqrt(somme);
+        for (int j = i + 1; j < taille; ++j) {
+            T somme2 = (*this)(j, i);
+            for (int k = 0; k < i; ++k)
+                somme2 -= (*this)(j, k) * (*this)(i, k);
+            (*this)(j, i) = somme2 / (*this)(i, i);
+        }
+    }
+}
+
+template<typename T>
+void MatriceSymetrique<T>::resoudreCholesky(std::vector<T>& b) const {
+    if (b.size() != static_cast<size_t>(taille))
+        throw std::invalid_argument("La taille du vecteur ne correspond pas à la dimension de la matrice.");
+    std::vector<T> y(taille, T(0));
+    // Résolution de L * y = b
+    for (int i = 0; i < taille; ++i) {
+        T somme = b[i];
+        for (int k = 0; k < i; ++k)
+            somme -= (*this)(i, k) * y[k];
+        y[i] = somme / (*this)(i, i);
+    }
+    std::vector<T> x(taille, T(0));
+    // Résolution de L^T * x = y
+    for (int i = taille - 1; i >= 0; --i) {
+        T somme = y[i];
+        for (int k = i + 1; k < taille; ++k)
+            somme -= (*this)(k, i) * x[k];
+        x[i] = somme / (*this)(i, i);
+    }
+    b = x;
+}
+
+// ============================================================================
+// Classe pour matrice creuse (sparse) en format COO
+// ============================================================================
+template<typename T>
+class MatriceCreuse {
+public:
+    int lignes, colonnes;
+    std::vector<int> lignesIndices;    // indices de ligne
+    std::vector<int> colonnesIndices;    // indices de colonne
+    std::vector<T> valeurs;            // valeurs non nulles
+
+public:
+    MatriceCreuse();
+    MatriceCreuse(int lignes, int colonnes);
+    void redimensionner(int lignes, int colonnes);
+
+    // Ajoute une valeur à la position (i, j) (la valeur est ajoutée à l'éventuelle valeur existante)
+    void ajouter(int i, int j, T valeur);
+
+    // Conversion en matrice dense
+    Matrice<T> toDense() const;
+};
+
+template<typename T>
+MatriceCreuse<T>::MatriceCreuse() : lignes(0), colonnes(0) {}
+
+template<typename T>
+MatriceCreuse<T>::MatriceCreuse(int lignes_, int colonnes_) : lignes(lignes_), colonnes(colonnes_) {}
+
+template<typename T>
+void MatriceCreuse<T>::redimensionner(int lignes_, int colonnes_) {
+    lignes = lignes_;
+    colonnes = colonnes_;
+    lignesIndices.clear();
+    colonnesIndices.clear();
+    valeurs.clear();
+}
+
+template<typename T>
+void MatriceCreuse<T>::ajouter(int i, int j, T valeur) {
+    if (i < 0 || i >= lignes || j < 0 || j >= colonnes)
+        throw std::out_of_range("Indice hors limites dans MatriceCreuse");
+    lignesIndices.push_back(i);
+    colonnesIndices.push_back(j);
+    valeurs.push_back(valeur);
+}
+
+template<typename T>
+Matrice<T> MatriceCreuse<T>::toDense() const {
+    Matrice<T> dense(lignes, colonnes);
+    for (size_t k = 0; k < valeurs.size(); ++k) {
+        dense(lignesIndices[k], colonnesIndices[k]) += valeurs[k];
+    }
+    return dense;
 }
 
 #endif // MATRICE_HPP
